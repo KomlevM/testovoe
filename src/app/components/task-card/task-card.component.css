@@ -1,0 +1,35 @@
+.task-card {
+  cursor: pointer;
+  display: block;
+}
+.task-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+}
+.task-card__id {
+  font-size: 12px;
+  color: var(--mat-sys-on-surface-variant);
+}
+.task-card__content {
+  padding-top: 8px;
+}
+.task-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.task-card__label {
+  color: var(--mat-sys-on-surface-variant);
+}
+.task-card__value {
+  text-align: right;
+  word-break: break-word;
+}
+.task-card__description {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--mat-sys-on-surface);
+}

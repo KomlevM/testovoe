@@ -1,0 +1,24 @@
+/* filter-panel.component.css */
+.filter-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.filter-panel__field {
+  min-width: 180px;
+}
+
+.filter-panel__field--narrow {
+  min-width: 120px;
+}
+
+.filter-panel__archive {
+  margin-left: 4px;
+}
+
+.filter-panel__reset {
+  margin-left: auto;
+}
