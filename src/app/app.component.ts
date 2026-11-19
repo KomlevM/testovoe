@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { TaskRaw } from './task.models';
+import { TaskRaw } from './models/task.models';
 
 @Component({
   selector: 'app-root',

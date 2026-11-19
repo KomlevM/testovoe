@@ -1,34 +1,47 @@
 <div class="board">
 
-  <!-- Состояния сети -->
-  @if (loading() && tasks().length === 0) {
-    <div class="board__status">Загрузка…</div>
-  }
-  @if (error(); as err) {
-    <div class="board__status board__status--error">Ошибка: {{ err }}</div>
+  @if (error$ | async; as err) {
+    @switch (err.kind) {
+      @case ('rate-limited') {
+        <div class="board__status board__status--warn">
+          Сервер ограничил частоту запросов. Повтор через {{ err.retryAfterSeconds }} с.
+          <button mat-stroked-button (click)="reload()">Повторить</button>
+        </div>
+      }
+      @case ('network') {
+        <div class="board__status board__status--error">
+          Нет связи с сервером.
+          <button mat-stroked-button (click)="reload()">Повторить</button>
+        </div>
+      }
+      @default {
+        <div class="board__status board__status--error">
+          Не удалось загрузить данные.
+          <button mat-stroked-button (click)="reload()">Повторить</button>
+        </div>
+      }
+    }
   }
 
-  <!-- Переключатель -->
-  <mat-button-toggle-group class="board__view-toggle" [value]="view()" (change)="view.set($event.value)">
+  <mat-button-toggle-group class="board__view-toggle"
+    [value]="view" (change)="setView($event.value)">
     <mat-button-toggle value="list">Лента</mat-button-toggle>
     <mat-button-toggle value="kanban">Канбан</mat-button-toggle>
   </mat-button-toggle-group>
 
-  <!-- Лента -->
-  @if (view() === 'list') {
+  @if (view === 'list') {
     <section class="board__list">
-      @for (task of tasks(); track task.id) {
-        <app-task-card [task]="task" (selected)="taskSelected.emit($event)"></app-task-card>
+      @for (task of (tasks$ | async) ?? []; track task.id) {
+        <app-task-card [task]="task"></app-task-card>
       } @empty {
         <div class="board__empty">Нет задач</div>
       }
     </section>
   }
 
-  <!-- Канбан -->
-  @if (view() === 'kanban') {
+  @if (view === 'kanban') {
     <section class="board__kanban">
-      @for (column of columns(); track column.status) {
+      @for (column of (columns$ | async) ?? []; track column.status) {
         <div class="board__column">
           <header class="board__column-header">
             <span class="board__column-title">{{ column.label }}</span>
@@ -36,7 +49,7 @@
           </header>
           <div class="board__column-body">
             @for (task of column.tasks; track task.id) {
-              <app-task-card [task]="task" (selected)="taskSelected.emit($event)"></app-task-card>
+              <app-task-card [task]="task"></app-task-card>
             } @empty {
               <div class="board__column-empty">Пусто</div>
             }
