@@ -1,126 +1,322 @@
-import { inject, Injectable, signal } from '@angular/core';
-import { BehaviorSubject, combineLatest, firstValueFrom, map, Observable, shareReplay, switchMap } from 'rxjs';
-import { EMPTY_FILTERS, Filters, NO_ASSIGNEE, NO_PROJECT, NO_STATUS, TaskRaw } from '../models/task.models';
+import { Injectable, inject } from '@angular/core';
+import {
+  BehaviorSubject, Observable, combineLatest, distinctUntilChanged, forkJoin,
+  map, shareReplay, startWith, switchMap, timer,
+} from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpService } from './http.service';
-import { ApiFailure } from '../models/api.model';
+import { ApiFailure, ApiResult } from '../models/api.model';
+import {
+  EMPTY_FILTERS, FiltersResponse, FiltersState, NO_STATUS, SortDir, SortField,
+  STATUS_LABELS, SummaryResponse, TasksFiltersPayload, TasksMeta, TasksQuery,
+  TasksResponse, TaskView,
+} from '../models/task.models';
+import { toTaskView } from '../normalizers/task-view.normalizer';
 
-interface Column {
+export interface Column {
   status: string;
   label: string;
-  tasks: TaskRaw[];
+  tasks: TaskView[];
 }
 
 export interface TasksState {
-  tasks: TaskRaw[];
-  error: ApiFailure | null;
+  page: number;
+  limit: number;
+  filters: FiltersState;
+  sortField: SortField;
+  sortDir: SortDir;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+export type TasksLoad =
+  | { status: 'idle' }
+  | {
+    status: 'ok';
+    response: TasksResponse;
+    views: TaskView[];
+    appliedFilters: TasksMeta['filters'];
+    loadedAt: Date;
+  }
+  | { status: 'error'; error: ApiFailure };
+
+export type SummaryLoad =
+  | { status: 'idle' }
+  | { status: 'ok'; data: SummaryResponse; loadedAt: Date }
+  | { status: 'error'; error: ApiFailure };
+
+/** Снапшот tasks из одного момента. Summary живёт в отдельном потоке. */
+export interface Snapshot {
+  tasks: ApiResult<TasksResponse>;
+  requestedAt: Date;
+}
+
+export type MetricFilterKey =
+  | 'overdue'
+  | 'no_assignee'
+  | 'unknown_data'
+  | 'no_due'
+  | 'no_priority'
+  | 'is_due_date_error'
+  | 'due_within_days';
+
+export const METRIC_KEYS: readonly MetricFilterKey[] = [
+  'overdue', 'no_assignee', 'unknown_data', 'no_due', 'no_priority',
+  'is_due_date_error', 'due_within_days',
+];
+
+export const ALLOWED_LIMITS = [10, 25, 50, 100] as const;
+
+const DEFAULT_STATE: TasksState = {
+  page: 0,
+  limit: 25,
+  filters: { ...EMPTY_FILTERS },
+  sortField: 'created',
+  sortDir: 'desc',
+};
+
+const COLUMN_ORDER = [
+  'NEW', 'IN_PROGRESS', 'CODE_REVIEW', 'BLOCKED', 'HOLD', 'DONE',
+] as const;
+
+const AUTO_RELOAD_MS = 30_000;
+
+@Injectable({ providedIn: 'root' })
 export class TasksService {
-  constructor(private http: HttpService) { }
-  private readonly reload$ = new BehaviorSubject<void>(undefined);
-  private readonly _filters$ = new BehaviorSubject<Filters>(EMPTY_FILTERS);
-  readonly filters$ = this._filters$.asObservable();
+  private readonly http = inject(HttpService);
 
-  readonly state$: Observable<TasksState> = this.reload$.pipe(
-    switchMap(() =>
-      this.http.getTasks(1, 200).pipe(
-        map(result =>
-          result.ok
-            ? { tasks: result.data.items, error: null }
-            : { tasks: [], error: result.error },
-        ),
-      ),
+  private readonly state$ = new BehaviorSubject<TasksState>(DEFAULT_STATE);
+  private readonly summarySoonDays$ = new BehaviorSubject<number>(7);
+
+  /** Частичный триггер: только tasks (фильтры/сортировка/пагинация). */
+  private readonly tasksReload$ = new BehaviorSubject<void>(undefined);
+
+  /** Полный триггер: tasks + summary + filters (кнопка / автообновление). */
+  private readonly fullReload$ = new BehaviorSubject<void>(undefined);
+
+  readonly state = this.state$.asObservable();
+  readonly summarySoonDays = this.summarySoonDays$.asObservable();
+
+  // --- tasks ---
+
+  readonly snapshot$: Observable<Snapshot> = combineLatest([
+    this.state$.pipe(distinctUntilChanged(sameQuery)),
+    this.tasksReload$,
+    this.fullReload$,
+  ]).pipe(
+    switchMap(([state]) => {
+      const requestedAt = new Date();
+      return this.http.postTasks(toQuery(state)).pipe(
+        map((tasks): Snapshot => ({ tasks, requestedAt })),
+      );
+    }),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  readonly load$: Observable<TasksLoad> = this.snapshot$.pipe(
+    map(s => toTasksLoad(s)),
+    startWith<TasksLoad>({ status: 'idle' }),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  readonly columns$: Observable<Column[]> = this.load$.pipe(
+    map(load => buildColumns(load)),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  readonly pagination$: Observable<
+    Pick<TasksMeta, 'page' | 'per_page' | 'total' | 'total_pages'> | null
+  > = this.load$.pipe(
+    map(load =>
+      load.status === 'ok'
+        ? {
+          page: load.response.meta.page,
+          per_page: load.response.meta.per_page,
+          total: load.response.meta.total,
+          total_pages: load.response.meta.total_pages,
+        }
+        : null,
     ),
-    shareReplay({ bufferSize: 1, refCount: true }),
+    shareReplay({ bufferSize: 1, refCount: false }),
   );
 
-  readonly tasks$ = this.state$.pipe(map(s => s.tasks));
-  readonly error$ = this.state$.pipe(map(s => s.error));
+  // --- summary ---
 
-  readonly visibleTasks$ = combineLatest([this.tasks$, this.filters$]).pipe(
-    map(([tasks, filters]) => applyFilters(tasks, filters)),
+  private readonly summaryData$: Observable<ApiResult<SummaryResponse>> = combineLatest([
+    this.summarySoonDays$,
+    this.fullReload$,
+  ]).pipe(
+    switchMap(([soonDays]) => this.http.getSummary(soonDays)),
+    shareReplay({ bufferSize: 1, refCount: false }),
   );
 
-  readonly columns$ = this.visibleTasks$.pipe(map(tasks => groupByRawStatus(tasks)));
-
-  readonly statusOptions$ = this.tasks$.pipe(map(tasks => uniq(tasks.map(t => t.status))));
-  readonly priorityOptions$ = this.tasks$.pipe(map(tasks => uniq(tasks.map(t => t.priority))));
-  readonly projectOptions$ = this.tasks$.pipe(map(tasks => uniq(tasks.map(t => t.project))));
-  readonly assigneeOptions$ = this.tasks$.pipe(map(tasks => uniq(tasks.map(t => t.assignee))));
-  readonly tagOptions$ = this.tasks$.pipe(
-    map(tasks => uniq(tasks.flatMap(t => (Array.isArray(t.tags) ? t.tags : [])))),
+  readonly summary$: Observable<SummaryLoad> = this.summaryData$.pipe(
+    map((res): SummaryLoad =>
+      res.ok
+        ? { status: 'ok', data: res.data, loadedAt: new Date() }
+        : { status: 'error', error: res.error },
+    ),
+    startWith<SummaryLoad>({ status: 'idle' }),
+    shareReplay({ bufferSize: 1, refCount: false }),
   );
 
-  reload(): void { this.reload$.next(); }
-  setFilters(filters: Filters): void { this._filters$.next(filters); }
-}
+  // --- filters ---
 
-// ---- 3. Чистые функции (после класса) ----
+  readonly filtersResponse$: Observable<ApiResult<FiltersResponse>> = this.fullReload$.pipe(
+    switchMap(() => this.http.getFilters()),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
 
-function uniq(values: Array<string | null | undefined>): string[] {
-  const set = new Set<string>();
-  for (const v of values) {
-    if (v === null || v === undefined) continue;
-    const s = String(v).trim();
-    if (s !== '') set.add(s);
+  constructor() {
+    // Полная перезагрузка раз в 30 секунд.
+    timer(AUTO_RELOAD_MS, AUTO_RELOAD_MS)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.reloadAll());
   }
-  return [...set].sort((a, b) => a.localeCompare(b));
-}
 
-function rawStatus(t: TaskRaw): string {
-  const v = t.status;
-  if (v === null || v === undefined) return '';
-  console.log([...new Set(String(v).trim())].join(''))
-  return String(v).trim();
-}
+  // --- команды ---
 
-function applyFilters(tasks: TaskRaw[], f: Filters): TaskRaw[] {
-  return tasks.filter(t => {
-    if (!f.showArchived && isArchived(t)) return false;
-
-    if (f.statuses.length) {
-      const s = rawStatus(t);
-      const match = s === '' ? f.statuses.includes(NO_STATUS) : f.statuses.includes(s);
-      if (!match) return false;
-    }
-    if (f.priorities.length) {
-      const p = t.priority == null ? '' : String(t.priority).trim();
-      if (!f.priorities.includes(p)) return false;
-    }
-    if (f.projects.length) {
-      const p = t.project == null ? '' : String(t.project).trim();
-      const match = p === '' ? f.projects.includes(NO_PROJECT) : f.projects.includes(p);
-      if (!match) return false;
-    }
-    if (f.assignees.length) {
-      const a = t.assignee == null ? '' : String(t.assignee).trim();
-      const match = a === '' ? f.assignees.includes(NO_ASSIGNEE) : f.assignees.includes(a);
-      if (!match) return false;
-    }
-    if (f.tags.length) {
-      const tags = Array.isArray(t.tags) ? t.tags : [];
-      if (!tags.some(tag => f.tags.includes(tag))) return false;
-    }
-    return true;
-  });
-}
-
-function isArchived(t: TaskRaw): boolean {
-  return (t as Record<string, unknown>)['archived'] === true;
-}
-
-function groupByRawStatus(tasks: TaskRaw[]): Column[] {
-  const map = new Map<string, TaskRaw[]>();
-  for (const t of tasks) {
-    const key = rawStatus(t) || '— без статуса —';
-    const arr = map.get(key);
-    if (arr) arr.push(t);
-    else map.set(key, [t]);
+  setPage(page: number): void {
+    const s = this.state$.value;
+    if (!Number.isInteger(page) || page < 0 || page === s.page) return;
+    this.state$.next({ ...s, page });
   }
-  return [...map.entries()]
-    .map(([status, tasks]) => ({ status, label: status, tasks }))
-    .sort((a, b) => a.status.localeCompare(b.status));
+
+  setLimit(limit: number): void {
+    if (!ALLOWED_LIMITS.includes(limit as (typeof ALLOWED_LIMITS)[number])) return;
+    const s = this.state$.value;
+    if (limit === s.limit) return;
+    this.state$.next({ ...s, limit, page: 0 });
+  }
+
+  setFilters(partial: Partial<FiltersState>): void {
+    const s = this.state$.value;
+    this.state$.next({
+      ...s,
+      filters: { ...s.filters, ...partial },
+      page: 0,
+    });
+  }
+
+  setSort(field: SortField, dir: SortDir): void {
+    const s = this.state$.value;
+    if (field === s.sortField && dir === s.sortDir) return;
+    this.state$.next({ ...s, sortField: field, sortDir: dir, page: 0 });
+  }
+
+  setMetricFilter(key: MetricFilterKey | null): void {
+    const s = this.state$.value;
+    const cleared: Partial<FiltersState> = {};
+    for (const k of METRIC_KEYS) {
+      if (k === 'due_within_days') cleared.due_within_days = null;
+      else cleared[k] = false;
+    }
+
+    let next: FiltersState = { ...s.filters, ...cleared };
+    if (key === 'due_within_days') {
+      next = { ...next, due_within_days: this.summarySoonDays$.value };
+    } else if (key) {
+      next = { ...next, [key]: true };
+    }
+
+    this.state$.next({ ...s, filters: next, page: 0 });
+  }
+
+  setSummarySoonDays(days: number): void {
+    const n = Math.max(0, Math.floor(days));
+    if (n === this.summarySoonDays$.value) return;
+    this.summarySoonDays$.next(n);
+
+    const s = this.state$.value;
+    if (s.filters.due_within_days != null) {
+      this.state$.next({
+        ...s,
+        filters: { ...s.filters, due_within_days: n },
+        page: 0,
+      });
+    }
+  }
+
+  /** Кнопка «обновить» и автообновление: полная перезагрузка по всем ручкам. */
+  reloadAll(): void {
+    this.fullReload$.next();
+  }
+
+  /** Явная частичная перезагрузка tasks (обычно не нужна — state сам триггерит). */
+  reloadTasks(): void {
+    this.tasksReload$.next();
+  }
+}
+
+// --- маппинг ---
+
+function toTasksLoad(s: Snapshot): TasksLoad {
+  if (!s.tasks.ok) return { status: 'error', error: s.tasks.error };
+  const now = s.requestedAt;
+  return {
+    status: 'ok',
+    response: s.tasks.data,
+    views: s.tasks.data.data.map(dto => toTaskView(dto, now)),
+    appliedFilters: s.tasks.data.meta.filters,
+    loadedAt: now,
+  };
+}
+
+function sameQuery(a: TasksState, b: TasksState): boolean {
+  return (
+    a.page === b.page &&
+    a.limit === b.limit &&
+    a.sortField === b.sortField &&
+    a.sortDir === b.sortDir &&
+    JSON.stringify(a.filters) === JSON.stringify(b.filters)
+  );
+}
+
+export function toQuery(state: TasksState): TasksQuery {
+  const filters = toFiltersPayload(state.filters);
+  const query: TasksQuery = {
+    page: state.page,
+    limit: state.limit,
+    sort: { field: state.sortField, dir: state.sortDir },
+  };
+  if (filters) query.filters = filters;
+  return query;
+}
+
+function toFiltersPayload(f: FiltersState): TasksFiltersPayload | undefined {
+  const out: TasksFiltersPayload = {};
+  if (f.status.length) out.status = f.status;
+  if (f.priority.length) out.priority = f.priority;
+  if (f.project.length) out.project = f.project;
+  if (f.assignee.length) out.assignee = f.assignee;
+  if (f.tag.length) out.tag = f.tag;
+  if (f.archived) out.archived = true;
+  if (f.due_within_days != null) out.due_within_days = f.due_within_days;
+  if (f.overdue) out.overdue = true;
+  if (f.no_assignee) out.no_assignee = true;
+  if (f.unknown_data) out.unknown_data = true;
+  if (f.no_due) out.no_due = true;
+  if (f.no_priority) out.no_priority = true;
+  if (f.is_due_date_error) out.is_due_date_error = true;
+  return Object.keys(out).length ? out : undefined;
+}
+
+function buildColumns(load: TasksLoad): Column[] {
+  if (load.status !== 'ok') return [];
+
+  const byStatus = new Map<string, TaskView[]>();
+  for (const v of load.views) {
+    const key = v.status ?? NO_STATUS;
+    const bucket = byStatus.get(key);
+    if (bucket) bucket.push(v);
+    else byStatus.set(key, [v]);
+  }
+
+  const columns: Column[] = [];
+  for (const status of COLUMN_ORDER) {
+    const tasks = byStatus.get(status);
+    if (tasks?.length) columns.push({ status, label: STATUS_LABELS[status], tasks });
+  }
+  const noStatus = byStatus.get(NO_STATUS);
+  if (noStatus?.length) columns.push({ status: NO_STATUS, label: 'Без статуса', tasks: noStatus });
+
+  return columns;
 }

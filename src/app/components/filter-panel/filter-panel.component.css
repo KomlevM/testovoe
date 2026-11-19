@@ -22,3 +22,18 @@
 .filter-panel__reset {
   margin-left: auto;
 }
+
+.filter-panel__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.filter-panel__toggle--active {
+  border-color: var(--summary-active, #1a73e8) !important;
+  background: var(--summary-active-bg, #e8f0fe);
+  color: var(--summary-active, #1a73e8);
+}

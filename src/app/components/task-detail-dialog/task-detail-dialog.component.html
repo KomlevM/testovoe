@@ -1,0 +1,15 @@
+<h2 mat-dialog-title>
+  {{ data.task.title }}
+  <span class="muted">{{ data.task.key }}</span>
+</h2>
+
+<mat-dialog-content class="dialog-content">
+
+  <section class="raw">
+    <pre>{{ allData | json }}</pre>
+  </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="close()">Закрыть</button>
+</mat-dialog-actions>

@@ -1,60 +1,64 @@
-<div class="filter-panel">
+<div class="filter-panel" [formGroup]="form">
 
-    <!-- Статус -->
-    <mat-form-field appearance="outline" class="filter-panel__field">
-        <mat-label>Статус</mat-label>
-        <mat-select multiple>
-            <mat-option></mat-option>
-        </mat-select>
-    </mat-form-field>
+  <!-- Статус: опции из /api/v2/filters (канон + "Неизвестно" + unknown) -->
+  <mat-form-field appearance="outline" class="filter-panel__field">
+    <mat-label>Статус</mat-label>
+    <mat-select multiple formControlName="status">
+      @for (opt of statusOptions$ | async; track opt.value) {
+      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
-    <!-- Приоритет -->
-    <mat-form-field appearance="outline" class="filter-panel__field">
-        <mat-label>Приоритет</mat-label>
-        <mat-select multiple>
-            <mat-option></mat-option>
-        </mat-select>
-    </mat-form-field>
+  <!-- Приоритет -->
+  <mat-form-field appearance="outline" class="filter-panel__field">
+    <mat-label>Приоритет</mat-label>
+    <mat-select multiple formControlName="priority">
+      @for (opt of priorityOptions$ | async; track opt.value) {
+      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
-    <!-- Проект -->
-    <mat-form-field appearance="outline" class="filter-panel__field">
-        <mat-label>Проект</mat-label>
-        <mat-select multiple>
-            <mat-option ></mat-option>
-        </mat-select>
-    </mat-form-field>
+  <!-- Проект -->
+  <mat-form-field appearance="outline" class="filter-panel__field">
+    <mat-label>Проект</mat-label>
+    <mat-select multiple formControlName="project">
+      @for (opt of projectOptions$ | async; track opt.value) {
+      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
-    <!-- Исполнитель (+ "Без исполнителя") -->
-    <mat-form-field appearance="outline" class="filter-panel__field">
-        <mat-label>Исполнитель</mat-label>
-        <mat-select multiple>
-            <mat-option value="__none__">— Без исполнителя —</mat-option>
-            <mat-option ></mat-option>
-        </mat-select>
-    </mat-form-field>
+  <!-- Исполнитель -->
+  <mat-form-field appearance="outline" class="filter-panel__field">
+    <mat-label>Исполнитель</mat-label>
+    <mat-select multiple formControlName="assignee">
+      @for (opt of assigneeOptions$ | async; track opt.value) {
+      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
-    <!-- Теги -->
-    <mat-form-field appearance="outline" class="filter-panel__field">
-        <mat-label>Теги</mat-label>
-        <mat-select multiple>
-            <mat-option></mat-option>
-        </mat-select>
-    </mat-form-field>
+  <!-- Теги -->
+  <mat-form-field appearance="outline" class="filter-panel__field">
+    <mat-label>Теги</mat-label>
+    <mat-select multiple formControlName="tag">
+      @for (opt of tagOptions$ | async; track opt.value) {
+      <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
 
-    <!-- Архив -->
-    <mat-checkbox class="filter-panel__archive">
-        Показывать архив
-    </mat-checkbox>
+  <button mat-stroked-button type="button" class="filter-panel__toggle"
+    [class.filter-panel__toggle--active]="form.get('archived')?.value" [attr.aria-pressed]="form.get('archived')?.value"
+    (click)="toggleArchived()">
+    <mat-icon>{{ form.get('archived')?.value ? 'inventory_2' : 'inventory' }}</mat-icon>
+    Архив
+  </button>
 
-    <!-- N дней для "скоро истекает" -->
-    <mat-form-field appearance="outline" class="filter-panel__field filter-panel__field--narrow">
-        <mat-label>Скоро истекает, дней</mat-label>
-        <input matInput type="number" min="1" step="1">
-    </mat-form-field>
-
-    <!-- Сброс -->
-    <button mat-stroked-button type="button" class="filter-panel__reset">
-        Сбросить
-    </button>
+  <button mat-stroked-button type="button" class="filter-panel__reset" (click)="reset()">
+    Сбросить
+  </button>
 
 </div>

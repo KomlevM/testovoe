@@ -1,19 +1,72 @@
 .task-card {
-  cursor: pointer;
-  display: block;
+  position: relative;
+  /* чтобы ::after позиционировался относительно карточки */
+  overflow: hidden;
+  /* иконка не вылезает за скругления */
 }
+
+.task-card--archived::after {
+  content: '';
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 160px;
+  height: 160px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000000'><path d='M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: 0.06;
+  /* приметно, но не мешает читать */
+  pointer-events: none;
+  /* клики проходят на карточку */
+  z-index: 0;
+}
+
+.task-card__archive-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 160px;
+  height: 160px;
+  font-size: 160px;
+  line-height: 160px;
+
+  opacity: 0.20;
+  pointer-events: none;
+  color: #1200ff;
+  z-index: 0;
+}
+
+/* контент карточки — поверх иконки */
+.task-card__content,
+.task-card mat-card-header {
+  position: relative;
+  z-index: 1;
+}
+
+/* опционально: лёгкий фон и рамка для архивных */
+.task-card--archived {
+  background-color: #fafafa;
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+}
+
 .task-card__title {
   font-size: 14px;
   font-weight: 600;
   word-break: break-word;
 }
+
 .task-card__id {
   font-size: 12px;
   color: var(--mat-sys-on-surface-variant);
 }
+
 .task-card__content {
   padding-top: 8px;
 }
+
 .task-card__row {
   display: flex;
   justify-content: space-between;
@@ -21,15 +74,51 @@
   font-size: 13px;
   line-height: 1.5;
 }
+
 .task-card__label {
   color: var(--mat-sys-on-surface-variant);
 }
+
 .task-card__value {
   text-align: right;
   word-break: break-word;
 }
+
 .task-card__description {
   margin-top: 8px;
   font-size: 13px;
   color: var(--mat-sys-on-surface);
+}
+
+.task-card__row--comments {
+  align-items: center;
+}
+
+.task-card__comments-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  height: 32px;
+  padding: 0 10px;
+  line-height: 1;
+}
+
+.task-card__comments-btn mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.task-card__comments-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-card__value--inactive {
+  color: #d32f2f;
+  background: rgba(211, 47, 47, 0.08);
+  padding: 0 4px;
+  border-radius: 4px;
+  cursor: help;
 }

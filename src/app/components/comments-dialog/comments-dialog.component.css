@@ -1,0 +1,27 @@
+.comments-dialog__content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 60vh;
+}
+
+.comment {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.comment__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.comment__author { font-weight: 600; color: #111827; }
+.comment__date { white-space: nowrap; }
+.comment__text { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.comments-dialog__empty { padding: 16px; text-align: center; color: #6b7280; }

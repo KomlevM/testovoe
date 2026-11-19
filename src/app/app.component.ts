@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { TaskRaw } from './models/task.models';
 
 @Component({
   selector: 'app-root',
@@ -9,8 +8,4 @@ import { TaskRaw } from './models/task.models';
 })
 export class AppComponent {
   title = 'testovoe';
-  onTaskSelected(task: TaskRaw): void {
-    // пока заглушка: drawer подключим следующим шагом
-    console.log('selected', task);
-  }
 }

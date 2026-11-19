@@ -1,41 +1,138 @@
 <mat-card class="task-card" (click)="onSelect()">
+  @if (task.archived) {
+  <mat-icon class="task-card__archive-watermark" aria-hidden="true">inventory_2</mat-icon>
+  }
   <mat-card-header>
     <mat-card-title class="task-card__title">
       {{ display(task.title) }}
     </mat-card-title>
-    <mat-card-subtitle class="task-card__id">
-      #{{ display(task.id) }}
+    <mat-card-subtitle class="task-card__key">
+      {{ display(task.key) }}
     </mat-card-subtitle>
   </mat-card-header>
 
   <mat-card-content class="task-card__content">
+
+    <!-- Статус: канон → подпись + тон; "Неизвестно" → бейдж; null → "—" -->
     <div class="task-card__row">
       <span class="task-card__label">Статус</span>
-      <span class="task-card__value">{{ display(task.status) }}</span>
+      @if (task.status === null) {
+      <span class="task-card__value">—</span>
+      } @else if (isUnknown(task.status)) {
+      <span class="badge badge--neutral">Неизвестно</span>
+      } @else {
+      <span class="badge" [class]="'badge--' + task.statusTone">{{ task.statusLabel }}</span>
+      }
     </div>
+
+    <!-- Приоритет -->
     <div class="task-card__row">
       <span class="task-card__label">Приоритет</span>
-      <span class="task-card__value">{{ display(task.priority) }}</span>
+      @if (task.priority === null) {
+      <span class="task-card__value">—</span>
+      } @else if (isUnknown(task.priority)) {
+      <span class="badge badge--neutral">Неизвестно</span>
+      } @else {
+      <span class="task-card__value">{{ task.priorityLabel }}</span>
+      }
     </div>
+
+    <!-- Проект -->
     <div class="task-card__row">
       <span class="task-card__label">Проект</span>
-      <span class="task-card__value">{{ display(task.project) }}</span>
+      @if (task.project === null) {
+      <span class="task-card__value">—</span>
+      } @else if (isUnknown(task.project)) {
+      <span class="badge badge--neutral">Неизвестно</span>
+      } @else {
+      <span class="task-card__value">{{ task.project }}</span>
+      }
     </div>
+
+    <!-- Источник (добавить source в TaskView) -->
+    <div class="task-card__row">
+      <span class="task-card__label">Источник</span>
+      <span class="task-card__value">{{ display(task.source) }}</span>
+    </div>
+
+    <!-- Исполнитель -->
     <div class="task-card__row">
       <span class="task-card__label">Исполнитель</span>
-      <span class="task-card__value">{{ display(task.assignee) }}</span>
+      @if (task.assignee === null) {
+      <span class="task-card__value">—</span>
+      } @else if (isUnknown(task.assignee)) {
+      <span class="badge badge--neutral">Неизвестно</span>
+      } @else {
+      <span class="task-card__value" [class.task-card__value--inactive]="task.assignee_active === false"
+        [title]="task.assignee_active === false ? 'Пользователь неактивен' : ''">
+        {{ task.assignee }}
+      </span>
+      }
     </div>
+
+    <!-- Даты: строки как есть; "Неизвестно" → бейдж, null → "—" -->
     <div class="task-card__row">
       <span class="task-card__label">Создано</span>
-      <span class="task-card__value">{{ display(task.created) }}</span>
+      @if (task.created === null) { <span class="task-card__value">—</span> }
+      @else if (isUnknown(task.created)) { <span class="badge badge--neutral">Неизвестно</span> }
+      @else { <span class="task-card__value">{{ task.created }}</span> }
     </div>
+
     <div class="task-card__row">
       <span class="task-card__label">Срок</span>
-      <span class="task-card__value">{{ display(task.due) }}</span>
+      @if (task.due === null) { <span class="task-card__value">—</span> }
+      @else if (isUnknown(task.due)) { <span class="badge badge--neutral">Неизвестно</span> }
+      @else { <span class="task-card__value">{{ task.due }}</span> }
+
+      @if (task.dueBeforeCreated) {
+      <span class="badge badge--danger" title="Срок раньше даты создания">срок &lt; создание</span>
+      }
+    </div>
+
+    <div class="task-card__row">
+      <span class="task-card__label">Обновлено</span>
+      @if (task.updated === null) { <span class="task-card__value">—</span> }
+      @else if (isUnknown(task.updated)) { <span class="badge badge--neutral">Неизвестно</span> }
+      @else { <span class="task-card__value">{{ task.updated }}</span> }
+    </div>
+
+    <div class="task-card__row">
+      <span class="task-card__label">Завершено</span>
+      @if (task.completed === null) { <span class="task-card__value">—</span> }
+      @else if (isUnknown(task.completed)) { <span class="badge badge--neutral">Неизвестно</span> }
+      @else { <span class="task-card__value">{{ task.completed }}</span> }
+    </div>
+
+    <!-- Оценка -->
+    <div class="task-card__row">
+      <span class="task-card__label">Оценка</span>
+      @if (task.estimate === null) { <span class="task-card__value">—</span> }
+      @else { <span class="task-card__value">{{ task.estimate }} ч</span> }
+    </div>
+
+    <!-- Теги -->
+    @if (task.tags.length) {
+    <div class="task-card__row">
+      <span class="task-card__label">Теги</span>
+      <span class="task-card__value">
+        @for (t of task.tags; track t) {
+        <span class="badge badge--info">#{{ t }} </span>
+        }
+      </span>
+    </div>
+    }
+
+    <div class="task-card__row task-card__row--comments">
+      <span class="task-card__label">Комментарии</span>
+      <button mat-stroked-button type="button" class="task-card__comments-btn" [disabled]="task.comments.length === 0"
+        (click)="onCommentsClick($event)">
+        <mat-icon>comment</mat-icon>
+        <span>{{ task.comments.length }}</span>
+      </button>
     </div>
 
     @if (task.description) {
-      <p class="task-card__description">{{ task.description }}</p>
+    <p class="task-card__description">{{ task.description }}</p>
     }
   </mat-card-content>
 </mat-card>

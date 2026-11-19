@@ -1,0 +1,25 @@
+<h2 mat-dialog-title>
+  Комментарии · {{ data.task.key }}
+</h2>
+
+<mat-dialog-content class="comments-dialog__content">
+  @for (c of data.task.comments; track $index) {
+    <article class="comment">
+      <header class="comment__header">
+        <span class="comment__author">
+          @if (c.author === null) { — }
+          @else if (c.author === 'Неизвестно') { <span class="badge badge--neutral">Неизвестно</span> }
+          @else { {{ c.author }} }
+        </span>
+        <span class="comment__date">{{ display(c.created) }}</span>
+      </header>
+      <p class="comment__text">{{ c.text }}</p>
+    </article>
+  } @empty {
+    <div class="comments-dialog__empty">Комментариев нет</div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button type="button" (click)="close()">Закрыть</button>
+</mat-dialog-actions>

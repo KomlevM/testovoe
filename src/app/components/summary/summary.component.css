@@ -1,0 +1,183 @@
+:host {
+  --summary-gap: 10px;
+  --summary-radius: 10px;
+  --summary-border: 1px solid rgba(0, 0, 0, 0.10);
+  --summary-surface: #ffffff;
+  --summary-muted: #6b7280;
+  --summary-text: #111827;
+  --summary-active: #1a73e8;
+  --summary-active-bg: #e8f0fe;
+  --summary-active-border: #1a73e8;
+
+  display: block;
+  margin-bottom: 16px;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Поле N ---------- */
+
+.summary__controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.summary__soon-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--summary-muted);
+  user-select: none;
+}
+
+.summary__soon-input {
+  width: 72px;
+  height: 32px;
+  padding: 0 8px;
+  border: var(--summary-border);
+  border-radius: 8px;
+  background: var(--summary-surface);
+  font-size: 13px;
+  color: var(--summary-text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.summary__soon-input:focus {
+  border-color: var(--summary-active);
+  box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+/* убрать стрелки у number-инпута (опционально, аккуратнее) */
+.summary__soon-input::-webkit-outer-spin-button,
+.summary__soon-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.summary__soon-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ---------- Ряд плиток ---------- */
+
+.summary__tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--summary-gap);
+}
+
+/* Базовая плитка: mat-stroked-button + наша раскладка */
+.summary__tile {
+  flex: 1 1 150px;
+  min-width: 140px;
+  height: auto;                 /* переопределяем Material */
+  padding: 10px 12px;
+  border-radius: var(--summary-radius);
+  text-align: left;
+  line-height: 1.2;
+  text-transform: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+/* Material-обёртки: растянуть контент на всю ширину плитки */
+.summary__tile ::ng-deep .mdc-button__label {
+  width: 100%;
+}
+
+.summary__tile-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.summary__tile-label {
+  font-size: 12px;
+  color: var(--summary-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.summary__tile-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--summary-text);
+}
+
+/* Hover для кликабельных плиток */
+.summary__tile:hover:not(.summary__tile--static) {
+  border-color: rgba(26, 115, 232, 0.4) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Focus-visible — клавиатура */
+.summary__tile:focus-visible {
+  outline: 2px solid var(--summary-active);
+  outline-offset: 2px;
+}
+
+/* Активное состояние */
+.summary__tile--active {
+  border-color: var(--summary-active-border) !important;
+  background: var(--summary-active-bg);
+  box-shadow: 0 0 0 1px var(--summary-active-border) inset;
+}
+
+.summary__tile--active .summary__tile-label {
+  color: var(--summary-active);
+}
+
+.summary__tile--active .summary__tile-value {
+  color: var(--summary-active);
+}
+
+/* Статичные плитки (не кнопки) */
+.summary__tile--static {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: default;
+  background: var(--summary-surface);
+  border: var(--summary-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.summary__tile--static .summary__tile-value {
+  color: var(--summary-muted);
+}
+
+/* ---------- Адаптив ---------- */
+
+@media (max-width: 768px) {
+  .summary__tiles {
+    gap: 8px;
+  }
+
+  .summary__tile {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  .summary__tile-label {
+    font-size: 11px;
+  }
+
+  .summary__tile-value {
+    font-size: 18px;
+  }
+
+  .summary__controls {
+    justify-content: flex-start;
+  }
+}
