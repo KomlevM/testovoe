@@ -4,7 +4,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { catchError, map, Observable, of, retry, throwError, timer } from 'rxjs';
 import { FiltersResponse, FiltersState, SummaryResponse, TasksFiltersPayload, TasksQuery, TasksResponse } from '../models/task.models';
-import { ApiFailure, ApiResult } from '../models/api.model';
+import { ApiFailure, ApiResult, HealthResponse, PulseResponse } from '../models/api.model';
 
 const MAX_RETRIES = 2;
 const BASE_BACKOFF_MS = 1000;
@@ -101,8 +101,9 @@ export class HttpService {
 
     if (err.status === 429) {
       const retryAfter = this.parsePositiveInt(err.headers.get('Retry-After')) ?? 1;
-      const remaining = this.parsePositiveInt(err.headers.get('X-RateLimit-Remaining'));
-      return { kind: 'rate-limited', retryAfterSeconds: retryAfter, remaining };
+      const remaining = this.parsePositiveInt(err.headers.get('X-RateLimit-Remaining')) ?? undefined;
+      const limit = this.parsePositiveInt(err.headers.get('X-RateLimit-Limit')) ?? undefined;
+      return { kind: 'rate-limited', retryAfterSeconds: retryAfter, remaining, limit };
     }
 
     const body = this.asBackendError(err.error);
@@ -132,5 +133,25 @@ export class HttpService {
     if (raw === null) return null;
     const n = Number(raw);
     return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+
+  getHealth(): Observable<ApiResult<HealthResponse>> {
+    return this.http
+      .get<HealthResponse>(`${this.baseUrl}/health`, { headers: this.staffHeaders() })
+      .pipe(
+        retry({ count: MAX_RETRIES, delay: (e, n) => this.retryDelay(e, n) }),
+        map(data => ({ ok: true as const, data })),
+        catchError(err => of({ ok: false as const, error: this.toFailure(err) })),
+      );
+  }
+
+  getPulse(): Observable<ApiResult<PulseResponse>> {
+    return this.http
+      .get<PulseResponse>(`${this.baseUrl}/system/pulse`, { headers: this.staffHeaders() })
+      .pipe(
+        retry({ count: MAX_RETRIES, delay: (e, n) => this.retryDelay(e, n) }),
+        map(data => ({ ok: true as const, data })),
+        catchError(err => of({ ok: false as const, error: this.toFailure(err) })),
+      );
   }
 }

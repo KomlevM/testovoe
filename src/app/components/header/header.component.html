@@ -1,13 +1,27 @@
 <div class="container">
     <mat-toolbar class="header-toolbar">
-        <div class="status-container"></div>
+        <div class="status-container">
+            @if (freshness$ | async; as st) {
+            <span class="status-badge" [class]="'status-badge--' + st.level"
+                [title]="st.ageSeconds != null ? ('последний успешный ответ ' + st.ageSeconds + ' c назад') : 'успешных ответов ещё не было'">
+                <span class="status-badge__dot"></span>
+                {{ st.label }}
+            </span>
+            }
+        </div>
         <div class="buttons-container">
-            <button mat-stroked-button type="button" aria-label="Обновить">
+            <button mat-stroked-button type="button" aria-label="Обновить" (click)="reload()">
                 Обновить
             </button>
-            <button mat-stroked-button type="button" color="primary">
+            <button mat-stroked-button type="button" color="primary" [disabled]="!(canExport$ | async)"
+                (click)="exportJson()">
                 Экспорт JSON
             </button>
         </div>
+        @if (rateLimit$ | async; as rl) {
+        <span class="status-badge status-badge--stale">
+            лимит · {{ rl.remaining }}/{{ rl.limit }}
+        </span>
+        }
     </mat-toolbar>
 </div>

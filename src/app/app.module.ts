@@ -9,7 +9,6 @@ import { AppComponent } from './app.component';
 import { FooterComponent } from './components/footer/footer.component';
 import { FilterPanelComponent } from './components/filter-panel/filter-panel.component';
 import { HeaderComponent } from './components/header/header.component';
-import { TaskDrawerComponent } from './components/task-drawer/task-drawer.component';
 import { BoardComponent } from './components/board/board.component';
 import { TaskCardComponent } from './components/task-card/task-card.component';
 import { CommentsDialogComponent } from './components/comments-dialog/comments-dialog.component';
@@ -30,6 +29,7 @@ import { MatSidenavModule } from '@angular/material/sidenav';   // для drawer
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';   // header
 import { MatBadgeModule } from '@angular/material/badge';       // счётчики
+import { MatSnackBarModule } from '@angular/material/snack-bar';       // счётчики
 
 @NgModule({
   declarations: [
@@ -37,7 +37,6 @@ import { MatBadgeModule } from '@angular/material/badge';       // счётчи�
     FooterComponent,
     FilterPanelComponent,
     HeaderComponent,
-    TaskDrawerComponent,
     BoardComponent,
     TaskCardComponent,
     CommentsDialogComponent,
@@ -62,7 +61,8 @@ import { MatBadgeModule } from '@angular/material/badge';       // счётчи�
     HttpClientModule,
     ReactiveFormsModule,
     MatIconModule,
-    MatDialogModule
+    MatDialogModule,
+    MatSnackBarModule
 ],
   providers: [],
   bootstrap: [AppComponent]

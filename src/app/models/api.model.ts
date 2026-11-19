@@ -5,7 +5,7 @@ export type ApiResult<T> =
   | { ok: false; error: ApiFailure };
 
 export type ApiFailure =
-  | { kind: 'rate-limited'; retryAfterSeconds: number; remaining: number | null }
+  | { kind: 'rate-limited'; retryAfterSeconds: number; remaining?: number; limit?: number }
   | { kind: 'forbidden' }                                    // 403 forbidden
   | { kind: 'not-found'; id?: string }                       // 404 not_found
   | { kind: 'unknown-route'; route?: string }                // 404 unknown_route
@@ -13,3 +13,15 @@ export type ApiFailure =
   | { kind: 'server-error'; status: number }
   | { kind: 'network' }
   | { kind: 'unknown'; message: string };
+
+export interface HealthResponse {
+  status: string;
+  token: string;
+}
+
+export interface PulseResponse {
+  service: string;
+  heartbeat: string;   // ← токен
+  version: string;
+  utc_time: string;    // ISO UTC
+}

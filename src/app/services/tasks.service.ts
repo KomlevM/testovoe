@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import {
   BehaviorSubject, Observable, combineLatest, distinctUntilChanged, forkJoin,
-  map, shareReplay, startWith, switchMap, timer,
+  map, shareReplay, startWith, switchMap, timer, merge, filter, scan,
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpService } from './http.service';
@@ -17,6 +17,13 @@ export interface Column {
   status: string;
   label: string;
   tasks: TaskView[];
+}
+
+interface RateLimitState {
+  at: Date;
+  retryAfterSeconds: number;
+  remaining?: number;
+  limit?: number;
 }
 
 export interface TasksState {
@@ -113,7 +120,7 @@ export class TasksService {
 
   readonly load$: Observable<TasksLoad> = this.snapshot$.pipe(
     map(s => toTasksLoad(s)),
-    startWith<TasksLoad>({ status: 'idle' }),
+    // startWith<TasksLoad>({ status: 'idle' }),
     shareReplay({ bufferSize: 1, refCount: false }),
   );
 
@@ -155,6 +162,28 @@ export class TasksService {
         : { status: 'error', error: res.error },
     ),
     startWith<SummaryLoad>({ status: 'idle' }),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  readonly lastSuccessAt$: Observable<Date | null> = merge(
+    this.load$.pipe(
+      filter(l => l.status === 'ok'),
+      map(l => (l as Extract<TasksLoad, { status: 'ok' }>).loadedAt),
+    ),
+    this.summary$.pipe(
+      filter(s => s.status === 'ok'),
+      map(s => (s as Extract<SummaryLoad, { status: 'ok' }>).loadedAt),
+    ),
+  ).pipe(
+    scan((acc, d) => (acc && acc > d ? acc : d), null as Date | null),
+    startWith(null),
+    shareReplay({ bufferSize: 1, refCount: false }),
+  );
+
+  readonly rateLimit$ = this.load$.pipe(
+    filter(l => l.status === 'error' && (l as any).error.kind === 'rate-limited'),
+    map(l => (l as any).error),
+    startWith(null),
     shareReplay({ bufferSize: 1, refCount: false }),
   );
 
