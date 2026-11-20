@@ -29,7 +29,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';   // для drawer
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatToolbarModule } from '@angular/material/toolbar';   // header
 import { MatBadgeModule } from '@angular/material/badge';       // счётчики
-import { MatSnackBarModule } from '@angular/material/snack-bar';       // счётчики
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MonitoringWidgetComponent } from './components/monitoring-widget/monitoring-widget.component';       // счётчики
 
 @NgModule({
   declarations: [
@@ -41,7 +42,8 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';       // счё
     TaskCardComponent,
     CommentsDialogComponent,
     SummaryComponent,
-    TaskDetailDialogComponent
+    TaskDetailDialogComponent,
+    MonitoringWidgetComponent
   ],
   imports: [
     BrowserModule,

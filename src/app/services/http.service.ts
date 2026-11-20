@@ -3,8 +3,9 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { catchError, map, Observable, of, retry, throwError, timer } from 'rxjs';
-import { FiltersResponse, FiltersState, SummaryResponse, TasksFiltersPayload, TasksQuery, TasksResponse } from '../models/task.models';
-import { ApiFailure, ApiResult, HealthResponse, PulseResponse } from '../models/api.model';
+import { FiltersResponse, SummaryResponse, TasksQuery, TasksResponse } from '../models/task.models';
+import { ApiFailure, ApiResult, HealthResponse } from '../models/api.model';
+import { PulseMetricsResponse } from '../models/metrics.model';
 
 const MAX_RETRIES = 2;
 const BASE_BACKOFF_MS = 1000;
@@ -145,9 +146,9 @@ export class HttpService {
       );
   }
 
-  getPulse(): Observable<ApiResult<PulseResponse>> {
+  getPulse(): Observable<ApiResult<PulseMetricsResponse >> {
     return this.http
-      .get<PulseResponse>(`${this.baseUrl}/system/pulse`, { headers: this.staffHeaders() })
+      .get<PulseMetricsResponse >(`${this.baseUrl}/system/pulse`, { headers: this.staffHeaders() })
       .pipe(
         retry({ count: MAX_RETRIES, delay: (e, n) => this.retryDelay(e, n) }),
         map(data => ({ ok: true as const, data })),

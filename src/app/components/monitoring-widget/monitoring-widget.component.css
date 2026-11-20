@@ -1,0 +1,19 @@
+.metrics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.api-state { padding: 4px 10px; border-radius: 14px; font-size: 12px; color: #fff; }
+.api-state--ok   { background: #2e7d32; }
+.api-state--warn { background: #ed6c02; }
+.api-state--down { background: #c62828; }
+.api-state--unknown { background: #9e9e9e; }
+
+.metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.metric { display: flex; flex-direction: column; gap: 4px; padding: 8px; border: 1px solid rgba(0,0,0,.08); border-radius: 8px; }
+.metric__label { font-size: 12px; color: rgba(0,0,0,.6); }
+.metric__value { font-size: 20px; font-weight: 600; }
+.spark { width: 100%; height: 24px; }
+.spark polyline { fill: none; stroke: #1976d2; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.metrics-note { margin-top: 16px; font-size: 12px; color: rgba(0,0,0,.6); }

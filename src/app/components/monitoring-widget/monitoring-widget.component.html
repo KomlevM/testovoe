@@ -1,0 +1,46 @@
+<!-- metrics-dialog.component.html -->
+<h2 mat-dialog-title>Метрики API</h2>
+
+<mat-dialog-content class="metrics-content">
+  @if (metrics$ | async; as m) {
+    <div class="metrics-header">
+      <span [class]="stateClass(m.apiState)">API: {{ stateLabel(m.apiState) }}</span>
+      <span class="metrics-uptime">uptime: {{ fmtUptime(m.uptimeSeconds) }}</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric">
+        <span class="metric__label">p95 латентности</span>
+        <span class="metric__value">{{ fmtMs(m.p95Ms) }}</span>
+        <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline [attr.points]="sparkPoints(m.history, 'p95Ms')" />
+        </svg>
+      </div>
+      <div class="metric">
+        <span class="metric__label">5xx rate</span>
+        <span class="metric__value">{{ fmtPct(m.error5xxRate) }}</span>
+        <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline [attr.points]="sparkPoints(m.history, 'errRate')" />
+        </svg>
+      </div>
+      <div class="metric">
+        <span class="metric__label">RPS</span>
+        <span class="metric__value">{{ fmtRps(m.rps) }}</span>
+        <svg class="spark" viewBox="0 0 100 24" preserveAspectRatio="none">
+          <polyline [attr.points]="sparkPoints(m.history, 'rps')" />
+        </svg>
+      </div>
+    </div>
+
+    <p class="metrics-note">
+      p95 — за всё время с старта сервиса (грубо); тренд важнее одного числа.
+      Последнее обновление: {{ m.lastOkAt ? (m.lastOkAt | date:'HH:mm:ss') : '—' }}
+    </p>
+  } @else {
+    <p>Нет данных</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Закрыть</button>
+</mat-dialog-actions>

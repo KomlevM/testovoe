@@ -4,6 +4,8 @@ import { Observable, catchError, combineLatest, map, of, shareReplay, switchMap,
 import { TasksService } from '../../services/tasks.service';
 import { HttpService } from '../../services/http.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MonitoringWidgetComponent } from '../monitoring-widget/monitoring-widget.component';
+import { MatDialog } from '@angular/material/dialog';
 
 type Freshness = 'unknown' | 'fresh' | 'stale' | 'down';
 
@@ -24,6 +26,7 @@ export class HeaderComponent implements OnInit {
   private readonly http = inject(HttpService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   /** Статус сервера для бейджа: /health → ok, ошибка → down. */
   readonly freshness$: Observable<FreshnessState> = combineLatest([
@@ -34,8 +37,6 @@ export class HeaderComponent implements OnInit {
     shareReplay({ bufferSize: 1, refCount: true }),
     takeUntilDestroyed(this.destroyRef),
   );
-
-
 
   readonly rateLimit$ = this.tasksService.rateLimit$;
 
@@ -80,6 +81,16 @@ export class HeaderComponent implements OnInit {
         return;
       }
       this.tasksService.reloadAll();
+    });
+  }
+
+  openMetrics(): void {
+    this.dialog.open(MonitoringWidgetComponent, {
+      width: '640px',
+      maxWidth: '95vw',
+      maxHeight: '90vh',
+      autoFocus: false,
+      restoreFocus: true,
     });
   }
 

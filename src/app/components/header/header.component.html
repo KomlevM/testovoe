@@ -17,6 +17,9 @@
                 (click)="exportJson()">
                 Экспорт JSON
             </button>
+            <button mat-stroked-button type="button" (click)="openMetrics()">
+                Метрики
+            </button>
         </div>
         @if (rateLimit$ | async; as rl) {
         <span class="status-badge status-badge--stale">
