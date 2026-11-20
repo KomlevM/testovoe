@@ -181,8 +181,10 @@ export class TasksService {
   );
 
   readonly rateLimit$ = this.load$.pipe(
-    filter(l => l.status === 'error' && (l as any).error.kind === 'rate-limited'),
-    map(l => (l as any).error),
+    filter((l): l is Extract<TasksLoad, { status: 'error' }> =>
+      l.status === 'error' && l.error.kind === 'rate-limited',
+    ),
+    map(l => l.error as Extract<ApiFailure, { kind: 'rate-limited' }>),
     startWith(null),
     shareReplay({ bufferSize: 1, refCount: false }),
   );

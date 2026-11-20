@@ -1,10 +1,10 @@
 // services/http.service.ts
 
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, Observable, of, retry, throwError, timer } from 'rxjs';
+import { BehaviorSubject, catchError, map, Observable, of, retry, throwError, timer } from 'rxjs';
 import { FiltersResponse, SummaryResponse, TasksQuery, TasksResponse } from '../models/task.models';
-import { ApiFailure, ApiResult, HealthResponse } from '../models/api.model';
+import { ApiFailure, ApiResult, HealthResponse, RateLimitSnapshot } from '../models/api.model';
 import { PulseMetricsResponse } from '../models/metrics.model';
 
 const MAX_RETRIES = 2;
@@ -21,18 +21,23 @@ interface BackendErrorBody {
 @Injectable({ providedIn: 'root' })
 export class HttpService {
   private readonly baseUrl = '/api/v2';
+  private readonly rateLimitSubject = new BehaviorSubject<RateLimitSnapshot | null>(null);
+  readonly rateLimit$ = this.rateLimitSubject.asObservable();
 
   constructor(private http: HttpClient) { }
 
   postTasks(body: TasksQuery): Observable<ApiResult<TasksResponse>> {
     return this.http
-      .post<TasksResponse>(`${this.baseUrl}/tasks`, body, { headers: this.staffHeaders() })
+      .post<TasksResponse>(`${this.baseUrl}/tasks`, body, {
+        headers: this.staffHeaders(),
+        observe: 'response',
+      })
       .pipe(
-        retry({
-          count: MAX_RETRIES,
-          delay: (error, retryCount) => this.retryDelay(error, retryCount),
+        retry({ count: MAX_RETRIES, delay: (e, n) => this.retryDelay(e, n) }),
+        map(res => {
+          this.observeRateLimit(res.headers, false);
+          return { ok: true as const, data: res.body as TasksResponse };
         }),
-        map(data => ({ ok: true as const, data })),
         catchError(err => of({ ok: false as const, error: this.toFailure(err) })),
       );
   }
@@ -70,10 +75,39 @@ export class HttpService {
     return { 'X-Staff-Key': 'tb-staff-2024' };
   }
 
+  private observeRateLimit(headers: HttpHeaders, limited: boolean, retryAfterSeconds?: number): void {
+    const limit = this.parsePositiveInt(headers.get('X-RateLimit-Limit'));
+    const remaining = this.parsePositiveInt(headers.get('X-RateLimit-Remaining'));
+
+    const prev = this.rateLimitSubject.value;
+
+    console.log('observeRateLimit:', { limited, retryAfterSeconds });
+
+    // 429: фиксируем «лимит до»
+    if (limited) {
+      const until = new Date(Date.now() + (retryAfterSeconds ?? 5) * 1000);
+      this.rateLimitSubject.next({
+        limit, remaining, observedAt: new Date(), limited: true, limitedUntil: until, retryAfterSeconds,
+      });
+      return;
+    }
+
+    // успех: если лимит ещё не истёк — не сбрасываем флаг, только обновляем числа
+    const stillLimited = prev?.limited && prev.limitedUntil && prev.limitedUntil.getTime() > Date.now();
+    this.rateLimitSubject.next({
+      limit, remaining, observedAt: new Date(),
+      limited: !!stillLimited,
+      limitedUntil: stillLimited ? prev!.limitedUntil : null,
+      retryAfterSeconds: stillLimited ? prev!.retryAfterSeconds : undefined,
+    });
+  }
+
   private retryDelay(error: unknown, retryCount: number): Observable<unknown> {
+    console.log('retryDelay:', error instanceof HttpErrorResponse ? error.status : error, retryCount);
     if (!(error instanceof HttpErrorResponse) || error.status !== 429) {
       return throwError(() => error); // не 429 — не ретраим
     }
+
     // Retry-After бэк не отдаёт (контракт), но если появится — уважаем.
     const retryAfter = this.parsePositiveInt(error.headers.get('Retry-After'));
     const remaining = this.parsePositiveInt(error.headers.get('X-RateLimit-Remaining'));
@@ -90,10 +124,11 @@ export class HttpService {
         delayMs = Math.min(delayMs, 500 + Math.floor(Math.random() * JITTER_MS));
       }
     }
-    return timer(delayMs);
+    return throwError(() => error);
   }
 
   private toFailure(err: unknown): ApiFailure {
+    console.log('toFailure:', err instanceof HttpErrorResponse ? err.status : err);
     if (!(err instanceof HttpErrorResponse)) {
       return { kind: 'unknown', message: err instanceof Error ? err.message : 'unknown' };
     }
@@ -102,6 +137,7 @@ export class HttpService {
 
     if (err.status === 429) {
       const retryAfter = this.parsePositiveInt(err.headers.get('Retry-After')) ?? 1;
+      this.observeRateLimit(err.headers, true, retryAfter);
       const remaining = this.parsePositiveInt(err.headers.get('X-RateLimit-Remaining')) ?? undefined;
       const limit = this.parsePositiveInt(err.headers.get('X-RateLimit-Limit')) ?? undefined;
       return { kind: 'rate-limited', retryAfterSeconds: retryAfter, remaining, limit };
@@ -146,9 +182,9 @@ export class HttpService {
       );
   }
 
-  getPulse(): Observable<ApiResult<PulseMetricsResponse >> {
+  getPulse(): Observable<ApiResult<PulseMetricsResponse>> {
     return this.http
-      .get<PulseMetricsResponse >(`${this.baseUrl}/system/pulse`, { headers: this.staffHeaders() })
+      .get<PulseMetricsResponse>(`${this.baseUrl}/system/pulse`, { headers: this.staffHeaders() })
       .pipe(
         retry({ count: MAX_RETRIES, delay: (e, n) => this.retryDelay(e, n) }),
         map(data => ({ ok: true as const, data })),

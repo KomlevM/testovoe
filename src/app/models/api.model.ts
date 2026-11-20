@@ -25,3 +25,12 @@ export interface PulseResponse {
   version: string;
   utc_time: string;    // ISO UTC
 }
+
+export interface RateLimitSnapshot {
+  limit: number | null;
+  remaining: number | null;
+  observedAt: Date;
+  limited: boolean;
+  limitedUntil: Date | null;
+  retryAfterSeconds?: number;
+}

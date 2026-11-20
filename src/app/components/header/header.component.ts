@@ -21,7 +21,7 @@ interface FreshnessState {
   templateUrl: './header.component.html',
   styleUrls: ['./header.component.css'],
 })
-export class HeaderComponent implements OnInit {
+export class HeaderComponent {
   private readonly tasksService = inject(TasksService);
   private readonly http = inject(HttpService);
   private readonly destroyRef = inject(DestroyRef);
@@ -38,7 +38,7 @@ export class HeaderComponent implements OnInit {
     takeUntilDestroyed(this.destroyRef),
   );
 
-  readonly rateLimit$ = this.tasksService.rateLimit$;
+  readonly rateLimit$ = this.http.rateLimit$;
 
   readonly canReload$ = this.tasksService.rateLimit$.pipe(
     map(rl => rl === null),
@@ -59,27 +59,13 @@ export class HeaderComponent implements OnInit {
     shareReplay({ bufferSize: 1, refCount: false }),
   );
 
-  ngOnInit(): void {
-    this.tasksService.rateLimit$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(v => console.log('rateLimit:', v));
-
-    this.tasksService.snapshot$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(s => {
-      console.log('snapshot:', s.tasks.ok, s.requestedAt);
-    });
-  }
-
   reload(): void {
-    // если лимит активен — не дёргаем, показываем сообщение
-    this.tasksService.rateLimit$.pipe(take(1)).subscribe(rl => {
-      if (rl) {
-        this.snack.open(
-          `Лимит запросов${rl.limit != null ? `: ${rl.remaining} из ${rl.limit}` : ''}. Подождите.`,
-          'OK',
-          { duration: 3000 },
-        );
-        return;
-      }
+    this.http.rateLimit$.pipe(take(1)).subscribe(rl => {
+      console.log(rl)
+      if (rl?.limited) { 
+        alert("лимит запросов")
+        return; 
+      } // бейдж уже показывает «лимит исчерпан»
       this.tasksService.reloadAll();
     });
   }

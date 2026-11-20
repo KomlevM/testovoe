@@ -44,7 +44,7 @@
   <mat-form-field appearance="outline" class="filter-panel__field">
     <mat-label>Теги</mat-label>
     <mat-select multiple formControlName="tag">
-      @for (opt of tagOptions$ | async; track opt.value) {
+      @for (opt of tagOptions$ | async; track opt.label) {
       <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
       }
     </mat-select>
