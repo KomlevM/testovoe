@@ -9,12 +9,92 @@
   color: #fff;
   transition: background-color 0.3s ease;
 }
+
 .status-badge__dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: currentColor; opacity: 0.9;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
 }
 
-.status-badge--unknown { background: #9e9e9e; } /* серый */
-.status-badge--fresh   { background: #2e7d32; } /* зелёный */
-.status-badge--stale   { background: #ed6c02; } /* жёлтый/оранжевый */
-.status-badge--down    { background: #c62828; } /* красный */
+.status-badge--unknown {
+  background: #9e9e9e;
+}
+
+/* серый */
+.status-badge--fresh {
+  background: #2e7d32;
+}
+
+/* зелёный */
+.status-badge--stale {
+  background: #ed6c02;
+}
+
+/* жёлтый/оранжевый */
+.status-badge--down {
+  background: #c62828;
+}
+
+/* красный */
+
+.header-toolbar {
+  height: auto;
+  min-height: unset;
+  padding: 8px 16px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  /* статус | кнопки | rate-limit */
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+
+.status-container {
+  grid-column: 1;
+  gap: 10px;
+}
+
+.buttons-container {
+  grid-column: 2;
+  justify-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* rate-limit — это span, а не .status-container; дадим ему класс */
+.header-toolbar>.status-badge:last-child {
+  grid-column: 3;
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .header-toolbar {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+  }
+
+  .status-container {
+    grid-column: 1;
+  }
+
+  .buttons-container {
+    grid-column: 1;
+    justify-self: stretch;
+    order: 2;
+  }
+
+  .buttons-container>button {
+    flex: 1 1 calc(50% - 8px);
+    /* 2 в ряд, 3-я на новой строке */
+    min-width: 0;
+  }
+
+  .header-toolbar>.status-badge:last-child {
+    grid-column: 1;
+    justify-self: start;
+    order: 3;
+  }
+}

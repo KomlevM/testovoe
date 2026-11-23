@@ -61,7 +61,6 @@ export class HeaderComponent {
 
   reload(): void {
     this.http.rateLimit$.pipe(take(1)).subscribe(rl => {
-      console.log(rl)
       if (rl?.limited) { 
         alert("лимит запросов")
         return; 

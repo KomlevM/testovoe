@@ -81,8 +81,6 @@ export class HttpService {
 
     const prev = this.rateLimitSubject.value;
 
-    console.log('observeRateLimit:', { limited, retryAfterSeconds });
-
     // 429: фиксируем «лимит до»
     if (limited) {
       const until = new Date(Date.now() + (retryAfterSeconds ?? 5) * 1000);
@@ -103,7 +101,6 @@ export class HttpService {
   }
 
   private retryDelay(error: unknown, retryCount: number): Observable<unknown> {
-    console.log('retryDelay:', error instanceof HttpErrorResponse ? error.status : error, retryCount);
     if (!(error instanceof HttpErrorResponse) || error.status !== 429) {
       return throwError(() => error); // не 429 — не ретраим
     }
@@ -128,7 +125,6 @@ export class HttpService {
   }
 
   private toFailure(err: unknown): ApiFailure {
-    console.log('toFailure:', err instanceof HttpErrorResponse ? err.status : err);
     if (!(err instanceof HttpErrorResponse)) {
       return { kind: 'unknown', message: err instanceof Error ? err.message : 'unknown' };
     }

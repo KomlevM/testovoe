@@ -8,6 +8,17 @@
                 {{ st.label }}
             </span>
             }
+            @if (rateLimit$ | async; as rl) {
+            <span class="status-badge" [class.status-badge--down]="rl.limited"
+                [class.status-badge--stale]="!rl.limited && rl.remaining != null && rl.remaining <= 1"
+                [class.status-badge--fresh]="!rl.limited && rl.remaining != null && rl.remaining > 1" style="margin-left: 5px">
+                @if (rl.limited) {
+                лимит исчерпан@if (rl.limit != null) { · 0/{{ rl.limit }} }
+                } @else if (rl.limit != null && rl.remaining != null) {
+                запросы · {{ rl.remaining }}/{{ rl.limit }}
+                }
+            </span>
+            }
         </div>
         <div class="buttons-container">
             <button mat-stroked-button type="button" aria-label="Обновить" (click)="reload()">
@@ -21,16 +32,5 @@
                 Метрики
             </button>
         </div>
-        @if (rateLimit$ | async; as rl) {
-        <span class="status-badge" [class.status-badge--down]="rl.limited"
-            [class.status-badge--stale]="!rl.limited && rl.remaining != null && rl.remaining <= 1"
-            [class.status-badge--fresh]="!rl.limited && rl.remaining != null && rl.remaining > 1">
-            @if (rl.limited) {
-            лимит исчерпан@if (rl.limit != null) { · 0/{{ rl.limit }} }
-            } @else if (rl.limit != null && rl.remaining != null) {
-            запросы · {{ rl.remaining }}/{{ rl.limit }}
-            }
-        </span>
-        }
     </mat-toolbar>
 </div>

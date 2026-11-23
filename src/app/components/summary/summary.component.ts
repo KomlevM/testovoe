@@ -10,6 +10,8 @@ interface MetricTile {
   key: MetricFilterKey;
   label: string;
   value: (s: SummaryResponse) => number;
+  type: string;
+  icon: string;
 }
 
 @Component({
@@ -28,15 +30,12 @@ export class SummaryComponent {
   readonly soonDaysControl = new FormControl<number>(7, { nonNullable: true });
 
   readonly metricTiles: MetricTile[] = [
-    { key: 'overdue', label: 'Просрочено', value: s => s.overdue },
-    // { key: 'no_assignee', label: 'Нет исполнителя', value: s => s.no_assignee },
-    { key: 'unknown_data', label: 'Неизвестные данные', value: s => s.unknown_data },
-    { key: 'no_due', label: 'Без срока', value: s => s.no_due },
-    // { key: 'no_priority', label: 'Без приоритета', value: s => s.no_priority },
-    { key: 'is_due_date_error', label: 'Срок раньше создания', value: s => s.is_due_date_error },
-    { key: 'due_within_days', label: 'Скоро', value: s => s.due_soon },
+    { key: 'overdue', label: 'Просрочено', value: s => s.overdue, icon: 'schedule', type: 'overdue' },
+    { key: 'unknown_data', label: 'Неизвестные данные', value: s => s.unknown_data, icon: 'help_outline', type: 'unknown'  },
+    { key: 'no_due', label: 'Без срока', value: s => s.no_due, icon: 'event_busy', type: 'nodate'},
+    { key: 'is_due_date_error', label: 'Срок раньше создания', value: s => s.is_due_date_error, icon: 'warning', type: 'conflict'  },
+    { key: 'due_within_days', label: 'Скоро', value: s => s.due_soon, icon: 'hourglass_bottom', type: 'soon'  },
   ];
-
   constructor() {
     // синхронизация: если N в сервисе поменялось (например, из другого места) — обновить поле
     this.tasksService.summarySoonDays

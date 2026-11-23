@@ -29,17 +29,21 @@ function priorityLabel(p: PriorityValue): string {
     return p === null ? '—' : p;
 }
 
+export function parseDtoDate(s: string | null | undefined): Date | null {
+    if (!s || s === 'Неизвестно') return null;
+    // "dd.mm.yyyy HH:MM" или "dd.mm.yyyy"
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}))?$/);
+    if (!m) return null;
+    const [, dd, mm, yyyy, hh = '0', mi = '0'] = m;
+    const d = new Date(+yyyy, +mm - 1, +dd, +hh, +mi);
+    return isNaN(d.getTime()) ? null : d;
+}
+
 export function toTaskView(dto: TaskDto, now: Date): TaskView {
     const createdUtc = toUtcDate(dto.createdUTC);
     const dueUtc = toUtcDate(dto.dueUTC);
     const updatedUtc = toUtcDate(dto.updatedUTC);
     const completedUtc = toUtcDate(dto.completedUTC);
-
-    const dueBeforeCreated =
-        createdUtc !== null && dueUtc !== null && dueUtc.getTime() < createdUtc.getTime();
-
-    const dueFarFuture =
-        dueUtc !== null && dueUtc.getTime() - now.getTime() > DUE_FAR_FUTURE_DAYS * 86_400_000;
 
     return {
         id: dto.id,
@@ -66,15 +70,12 @@ export function toTaskView(dto: TaskDto, now: Date): TaskView {
         due: dto.due,
         updated: dto.updated,
         completed: dto.completed,
-
-        createdUtc, dueUtc, updatedUtc, completedUtc,
+        is_due_date_error: dto.is_due_date_error,
+        is_overdue: dto.is_overdue,
 
         estimate: typeof dto.estimate === 'number' ? dto.estimate : null,
         tags: dto.tags ?? [],
         comments: dto.comments ?? [],
-
-        dueBeforeCreated,
-        dueFarFuture,
 
         all_data: dto.all_data
     };

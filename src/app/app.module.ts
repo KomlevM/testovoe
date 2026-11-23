@@ -14,6 +14,7 @@ import { TaskCardComponent } from './components/task-card/task-card.component';
 import { CommentsDialogComponent } from './components/comments-dialog/comments-dialog.component';
 import { SummaryComponent } from './components/summary/summary.component';
 import { TaskDetailDialogComponent } from './components/task-detail-dialog/task-detail-dialog.component';
+import { MonitoringWidgetComponent } from './components/monitoring-widget/monitoring-widget.component';
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -22,15 +23,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatDialogModule, MatDialogActions } from '@angular/material/dialog';
-import { MatIconModule, MatIcon } from '@angular/material/icon';
-import { MatSidenavModule } from '@angular/material/sidenav';   // для drawer
+import { MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSidenavModule } from '@angular/material/sidenav'; 
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatToolbarModule } from '@angular/material/toolbar';   // header
-import { MatBadgeModule } from '@angular/material/badge';       // счётчики
-import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { MonitoringWidgetComponent } from './components/monitoring-widget/monitoring-widget.component';       // счётчики
+import { MatToolbarModule } from '@angular/material/toolbar'; 
+import { MatBadgeModule } from '@angular/material/badge';    
+import { MatSnackBarModule } from '@angular/material/snack-bar';  
+import { MatTooltipModule } from '@angular/material/tooltip'; 
+import { MatDividerModule } from '@angular/material/divider';
 
 @NgModule({
   declarations: [
@@ -64,8 +65,10 @@ import { MonitoringWidgetComponent } from './components/monitoring-widget/monito
     ReactiveFormsModule,
     MatIconModule,
     MatDialogModule,
-    MatSnackBarModule
-],
+    MatSnackBarModule,
+    MatTooltipModule,
+    MatDividerModule
+  ],
   providers: [],
   bootstrap: [AppComponent]
 })

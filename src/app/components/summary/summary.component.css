@@ -5,9 +5,6 @@
   --summary-surface: #ffffff;
   --summary-muted: #6b7280;
   --summary-text: #111827;
-  --summary-active: #1a73e8;
-  --summary-active-bg: #e8f0fe;
-  --summary-active-border: #1a73e8;
 
   display: block;
   margin-bottom: 16px;
@@ -17,6 +14,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin: 5px;
 }
 
 /* ---------- Поле N ---------- */
@@ -50,16 +48,16 @@
 }
 
 .summary__soon-input:focus {
-  border-color: var(--summary-active);
+  border-color: var(--summary-active, #1a73e8);
   box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
 }
 
-/* убрать стрелки у number-инпута (опционально, аккуратнее) */
 .summary__soon-input::-webkit-outer-spin-button,
 .summary__soon-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 .summary__soon-input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
@@ -73,11 +71,11 @@
   gap: var(--summary-gap);
 }
 
-/* Базовая плитка: mat-stroked-button + наша раскладка */
+/* Базовая плитка */
 .summary__tile {
   flex: 1 1 150px;
   min-width: 140px;
-  height: auto;                 /* переопределяем Material */
+  height: auto;
   padding: 10px 12px;
   border-radius: var(--summary-radius);
   text-align: left;
@@ -86,59 +84,101 @@
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-/* Material-обёртки: растянуть контент на всю ширину плитки */
 .summary__tile ::ng-deep .mdc-button__label {
   width: 100%;
 }
 
 .summary__tile-inner {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
   gap: 4px;
   width: 100%;
 }
 
+.summary__tile-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+  position: relative;
+  top: 1px;
+  /* оптическая подстройка глифа */
+  color: currentColor;
+  /* наследует цвет метрики */
+}
+
 .summary__tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: var(--summary-muted);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  line-height: 1.2;
+  line-height: 1;
+  min-width: 0;
+}
+
+.summary__tile-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .summary__tile-value {
+  margin-left: auto;
+  /* значение прижато вправо */
   font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   color: var(--summary-text);
 }
 
-/* Hover для кликабельных плиток */
-.summary__tile:hover:not(.summary__tile--static) {
-  border-color: rgba(26, 115, 232, 0.4) !important;
+.summary__tile.mat-mdc-outlined-button:not(:disabled) {
+  color: currentColor;
+  border-color: currentColor;
+}
+
+/* ---------- Состояния: hover / focus / active ---------- */
+
+/* Hover — цвет метрики */
+.summary__tile:hover:not(.summary__tile--static),
+.summary__tile--active {
+  border-color: currentColor;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Focus-visible — клавиатура */
 .summary__tile:focus-visible {
-  outline: 2px solid var(--summary-active);
+  outline: 2px solid currentColor;
   outline-offset: 2px;
 }
 
-/* Активное состояние */
 .summary__tile--active {
-  border-color: var(--summary-active-border) !important;
-  background: var(--summary-active-bg);
-  box-shadow: 0 0 0 1px var(--summary-active-border) inset;
+  box-shadow: 0 0 0 2px currentColor inset;
 }
 
-.summary__tile--active .summary__tile-label {
-  color: var(--summary-active);
+.summary__tile--active .summary__tile-label,
+.summary__tile--active .summary__tile-value,
+.summary__tile--active .summary__tile-icon {
+  color: currentColor;
 }
 
-.summary__tile--active .summary__tile-value {
-  color: var(--summary-active);
+/* Ripple / focus-overlay Material — перекрасить в цвет метрики */
+.summary__tile ::ng-deep .mat-mdc-button-persistent-ripple::before,
+.summary__tile ::ng-deep .mat-ripple-element {
+  background-color: currentColor !important;
+  opacity: 0.12;
+}
+
+.summary__tile ::ng-deep .mat-mdc-focus-indicator::before {
+  display: none;
 }
 
 /* Статичные плитки (не кнопки) */
@@ -150,6 +190,221 @@
   background: var(--summary-surface);
   border: var(--summary-border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.summary__tile--static .summary__tile-value {
+  color: var(--summary-muted);
+}
+
+/* ---------- Цвета метрик (источник currentColor) ---------- */
+
+.task-card__bookmark--archive {
+  color: #1a73e8;
+}
+
+.task-card__bookmark--conflict {
+  color: #7c3aed;
+}
+
+.task-card__bookmark--overdue {
+  color: #dc2626;
+}
+
+.task-card__bookmark--soon {
+  color: #f59e0b;
+}
+
+.task-card__bookmark--normal {
+  color: #575756;
+}
+
+/* ---------- Адаптив ---------- */
+
+@media (max-width: 768px) {
+  .summary__tiles {
+    gap: 8px;
+  }
+
+  .summary__tile {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  .summary__tile-label {
+    font-size: 11px;
+  }
+
+  .summary__tile-value {
+    font-size: 18px;
+  }
+
+  .summary__controls {
+    justify-content: flex-start;
+  }
+}
+
+/* ---------- Плитка-кнопка ---------- */
+
+.summary__tile {
+  /* базовая плитка */
+  flex: 1 1 150px;
+  min-width: 140px;
+  height: auto;
+  padding: 10px 12px;
+  border-radius: var(--summary-radius);
+  text-align: left;
+  line-height: 1.2;
+  text-transform: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  /* цвет = currentColor, задаётся модификатором ниже */
+  --mdc-outlined-button-label-text-color: currentColor;
+  --mdc-outlined-button-outline-color: currentColor;
+  --mdc-outlined-button-hover-label-text-color: currentColor;
+  --mdc-outlined-button-focus-label-text-color: currentColor;
+  --mdc-outlined-button-pressed-label-text-color: currentColor;
+  --mdc-outlined-button-hover-state-layer-color: currentColor;
+  --mdc-outlined-button-focus-state-layer-color: currentColor;
+  --mdc-outlined-button-pressed-state-layer-color: currentColor;
+  --mat-outlined-button-label-text-color: currentColor;
+  --mat-outlined-button-outline-color: currentColor;
+  --mat-outlined-button-state-layer-color: currentColor;
+}
+
+/* Перебиваем правило Material по специфичности.
+   color НЕ ставим здесь — иначе будет цикл currentColor → inherited (чёрный). */
+.summary__tile.mat-mdc-outlined-button:not(:disabled) {
+  border-color: currentColor;
+}
+
+/* Цвета метрик — специфичность (0,4,1) гарантированно бьёт Material (0,2,1) */
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--archive {
+  color: #1a73e8;
+}
+
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--conflict {
+  color: #7c3aed;
+}
+
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--nodate {
+  color: #14B8A6;
+}
+
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--overdue {
+  color: #dc2626;
+}
+
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--soon {
+  color: #f59e0b;
+}
+
+.summary__tile.mat-mdc-outlined-button:not(:disabled).summary__tile--unknown {
+  color: #575756;
+}
+
+/* ---------- Внутренности плитки ---------- */
+
+.summary__tile ::ng-deep .mdc-button__label {
+  width: 100%;
+}
+
+.summary__tile-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.summary__tile-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+  position: relative;
+  top: 1px;
+  color: currentColor;
+}
+
+.summary__tile-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: currentColor;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  min-width: 0;
+  opacity: 0.8;
+}
+
+.summary__tile-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.summary__tile-value {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: currentColor;
+}
+
+/* ---------- Состояния ---------- */
+
+.summary__tile:hover:not(.summary__tile--static) {
+  border-color: currentColor;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.summary__tile:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.summary__tile--active {
+  border-color: currentColor;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px currentColor inset;
+}
+
+.summary__tile--active .summary__tile-label,
+.summary__tile--active .summary__tile-value,
+.summary__tile--active .summary__tile-icon {
+  color: currentColor;
+}
+
+/* Ripple / focus-overlay Material — в цвет метрики */
+.summary__tile ::ng-deep .mat-mdc-button-persistent-ripple::before,
+.summary__tile ::ng-deep .mat-ripple-element {
+  background-color: currentColor !important;
+  opacity: 0.12;
+}
+
+.summary__tile ::ng-deep .mat-mdc-focus-indicator::before {
+  display: none;
+}
+
+/* ---------- Статичные плитки ---------- */
+
+.summary__tile--static {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: default;
+  background: var(--summary-surface);
+  border: var(--summary-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  color: var(--summary-muted);
 }
 
 .summary__tile--static .summary__tile-value {

@@ -12,11 +12,14 @@
     <!-- Radio-ряд metric-плиток: активна максимум одна -->
     <div class="summary__tiles">
         @for (t of metricTiles; track t.key) {
-        <button mat-stroked-button type="button" class="summary__tile"
+        <button mat-stroked-button class="summary__tile" [class]="'summary__tile--' + t.type"
             [class.summary__tile--active]="isActive(filters, t.key)" [attr.aria-pressed]="isActive(filters, t.key)"
             (click)="onMetricClick(filters, t.key)">
             <span class="summary__tile-inner">
-                <span class="summary__tile-label">{{ t.label }}</span>
+                <mat-icon class="summary__tile-icon" aria-hidden="true">{{ t.icon }}</mat-icon>
+                <span class="summary__tile-label">
+                    <span class="summary__tile-label-text">{{ t.label }}</span>
+                </span>
                 <span class="summary__tile-value">{{ metricValue(res, t) }}</span>
             </span>
         </button>

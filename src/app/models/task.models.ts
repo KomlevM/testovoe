@@ -3,7 +3,7 @@
 // ---------- Транспорт: что реально отдаёт бэк ----------
 
 export type TaskStatusCanon =
-  | 'NEW' | 'IN_PROGRESS' | 'CODE_REVIEW' | 'BLOCKED' | 'HOLD' | 'DONE';
+  | 'NEW' | 'IN_PROGRESS' | 'CODE_REVIEW' | 'BLOCKED' | 'HOLD' | 'DONE' | 'UNKNOWN' | 'NULL';
 
 /** Бэк отдаёт канон, "Неизвестно" (было, но не распозналось) или null (поля не было). */
 export type StatusValue = TaskStatusCanon | 'Неизвестно' | null;
@@ -39,7 +39,10 @@ export interface TaskDto {
   dueUTC: string | null;
   updatedUTC: string | null;
   completedUTC: string | null;
+  is_due_date_error: boolean;
   archived: boolean;
+  is_overdue: boolean;
+  is_soon: boolean;
 
   tags: string[];
   estimate: number | 'Неизвестно' | null;
@@ -175,24 +178,17 @@ export interface TaskView {
   due: DtoDate;
   updated: DtoDate;
   completed: DtoDate;
-
-  // для вычислений — из *UTC полей. null, если сервер отдал null.
-  createdUtc: Date | null;
-  dueUtc: Date | null;
-  updatedUtc: Date | null;
-  completedUtc: Date | null;
+  is_due_date_error: boolean;
+  is_overdue: boolean;
 
   estimate: number | null;
   tags: string[];
   comments: TaskCommentDto[];
 
-  dueBeforeCreated: boolean;
-  dueFarFuture: boolean;
-
   all_data: [key: any]
 }
 
-export type StatusTone = 'neutral' | 'info' | 'warning' | 'danger' | 'success';
+export type StatusTone = 'neutral' | 'info' | 'warning' | 'danger' | 'success' | 'unknown' | 'null';
 
 export const STATUS_LABELS: Record<TaskStatusCanon, string> = {
   NEW: 'Новая',
@@ -201,6 +197,8 @@ export const STATUS_LABELS: Record<TaskStatusCanon, string> = {
   BLOCKED: 'Заблокирована',
   HOLD: 'Приостановлена',
   DONE: 'Готово',
+  UNKNOWN: 'Неизвестноый статус',
+  NULL: 'Нет статуса',
 };
 
 export const STATUS_TONES: Record<TaskStatusCanon, StatusTone> = {
@@ -210,6 +208,8 @@ export const STATUS_TONES: Record<TaskStatusCanon, StatusTone> = {
   BLOCKED: 'danger',
   HOLD: 'warning',
   DONE: 'success',
+  UNKNOWN: 'unknown',
+  NULL: 'null',
 };
 
 export const NO_STATUS = '__no_status__' as const;
